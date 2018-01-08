@@ -1,8 +1,9 @@
 import gym
-import sys
+import sys, os
 
 import ppaquette_gym_super_mario
 import readchar
+import tensorflow as tf
 
 from dqn import DQN
 from utils import get_copy_var_ops
@@ -24,14 +25,6 @@ arrow_keys = {
     '\x1b[D': LEFT
 }
 
-class RandomAgent(object):
-    """The world's simplest agent!"""
-    def __init__(self, action_space):
-    self.action_space = action_space
-
-    def act(self, observation, reward, done):
-    return self.action_space.sample()
-
 
 def main():
 
@@ -42,6 +35,13 @@ def main():
 
     batch_size = 32
     discount = 0.99
+    
+    # 1. Create gym environment
+    env = gym.make("ppaquette/SuperMarioBros-1-1-v0")
+    # 2. Apply action space wrapper
+    env = MarioActionSpaceWrapper(env)
+    # 3. Apply observation space wrapper to reduce input size
+    env = ProcessFrame84(env)
 
     #replay_buffer = PrioritizedReplayBuffer(MAX_BUFFER_SIZE, alpha=prioritized_replay_alpha)
     replay_buffer = ReplayBuffer(MAX_BUFFER_SIZE)
@@ -58,7 +58,8 @@ def main():
 
 
     for eps in range(MAX_EPISODES):
-        e = 1. / ((episode / 10) + 1)
+        # decaying epsilon greedy
+        e = 1. / ((eps / 10) + 1)
         done = False
         step_count = 0
         state = env.reset()
@@ -66,6 +67,7 @@ def main():
         
         while not done:
             step_count += 1
+            print(step_count)
             if np.random.rand() < e:
                 action = env.action_space.sample()
             else:
@@ -97,4 +99,5 @@ def main():
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"]="1"
     main()
