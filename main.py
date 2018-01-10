@@ -4,6 +4,7 @@ import sys, os
 import ppaquette_gym_super_mario
 import readchar
 import tensorflow as tf
+import numpy as np
 
 from dqn import DQN
 from utils import get_copy_var_ops
@@ -34,6 +35,7 @@ def main():
     TARGET_UPDATE_EPS = 1000
 
     batch_size = 32
+    n_size = 84
     discount = 0.99
     
     # 1. Create gym environment
@@ -63,39 +65,46 @@ def main():
         done = False
         step_count = 0
         state = env.reset()
+        state_s = state
 
         
         while not done:
             step_count += 1
             print(step_count)
-            if np.random.rand() < e:
+            if step_count == 1 or np.random.rand() < e:
                 action = env.action_space.sample()
             else:
                 # Choose an action by greedily from the Q-network
-                action = np.argmax(mainDQN.predict(state))
+                action = np.argmax(mainDQN.predict(state_s))
 
             # Get new state and reward from environment
-            next_state, reward, done, _ = env.step(action)
+            state_stack = []
+            for _ in range(4):
+                next_state, reward, done, _ = env.step(action)
 
-            if done:  # Penalty
-                reward = -1
-
-            replay_buffer.add(state, action, reward, next_state, done)
+                if done:  # Penalty
+                    reward = -1
+                state_stack.append(next_state)
+                replay_buffer.add(state, action, reward, next_state, done)
 
             if step_count % TRAIN_EPISODE == 0:
-                states, actions, rewards, next_states, done = replay_buffer.sample(batch_size)
+                states, actions, rewards, next_states, _ = replay_buffer.sample(batch_size * 4)
+                states, next_states = np.reshape(states, [batch_size, n_size, n_size, 4]), np.reshape(next_states, [batch_size, n_size, n_size, 4])
                 Q_t = targetDQN.predict(next_states)
                 Q_m = mainDQN.predict(states)
                 Q_t = np.max(Q_t, axis=1)
+                rewards = np.mean(np.reshape(rewards, [batch_size, 4]), 1)
                 estimates = rewards + discount * Q_t
-                Q_m[range(len(states)), actions]
-                loss = mainDQN.train(states, Q_m)
+                actions = np.reshape(actions, [batch_size, 4])
+                actions = np.reshape(actions[::4], [batch_size])
+                Q_m[np.arange(batch_size), actions] = estimates
+                loss = mainDQN.update(states, Q_m)
                 print("eps: {} step: {} loss: {}".format(eps, step_count, loss))
 
             if step_count % TARGET_UPDATE_EPS == 0:
                 sess.run(copy_ops)
 
-            state = next_state
+            state_s = np.reshape(np.array(state_stack), [1, n_size, n_size, 4])
 
 
 if __name__ == '__main__':
