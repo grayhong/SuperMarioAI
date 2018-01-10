@@ -32,6 +32,9 @@ class DQN(object):
 
         self.build()
 
+        self.var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+
+        
 
 
     def build(self):
