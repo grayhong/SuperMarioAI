@@ -11,17 +11,17 @@ class DQN(object):
         self.n_input = 84 * 84
         self.n_size = 84
         self.n_channel = 1
-        self.n_hidden = 112
+        self.n_hidden = 256
         self.n_actions = 14
         self.sess = sess
         self.name = name
         self.learning_rate = 1e-4
 
 
-        self.d1 = int(self.n_size / 4)
+        self.d1 = 11
 
         self.weights ={
-            'w1': tf.Variable(tf.random_normal([self.d1 * self.d1 * 32, self.n_hidden], stddev=0.01)),
+            'w1': tf.Variable(tf.random_normal([self.d1 * self.d1 * 64, self.n_hidden], stddev=0.01)),
             'w2': tf.Variable(tf.random_normal([self.n_hidden, self.n_actions], stddev=0.01)),
         }
 
@@ -42,11 +42,12 @@ class DQN(object):
             self.X = tf.placeholder(tf.float32, [None, self.n_size, self.n_size, 4], name='state')
             self.Y = tf.placeholder(tf.float32, [None, self.n_actions], name='reward')
 
-            conv_1 = tf.nn.relu(batch_normal(conv2d(self.X, output_dim = 32, name = 'conv_1'), scope='bn_1'))
-            conv_2 = tf.nn.relu(batch_normal(conv2d(conv_1, output_dim = 32, name = 'conv_2'), scope='bn_2'))
+            conv_1 = tf.nn.relu(batch_normal(conv2d(self.X, output_dim = 32, k_h=8, k_w=8, d_h=4, d_w=4, name = 'conv_1'), scope='bn_1'))
+            conv_2 = tf.nn.relu(batch_normal(conv2d(conv_1, output_dim = 64, k_h=4, k_w=4, d_h=2, d_w=2, name = 'conv_2'), scope='bn_2'))
+            conv_3 = tf.nn.relu(batch_normal(conv2d(conv_2, output_dim = 64, k_h=3, k_w=3, d_h=1, d_w=1, name = 'conv_3'), scope='bn_3'))
 
-            conv_2 = tf.reshape(conv_2 , [-1, self.d1 * self.d1 * 32])
-            fc_1 = tf.nn.relu(tf.matmul(conv_2, self.weights['w1']) + self.biases['b1'])
+            conv_3 = tf.reshape(conv_3 , [-1, self.d1 * self.d1 * 64])
+            fc_1 = tf.nn.relu(tf.matmul(conv_3, self.weights['w1']) + self.biases['b1'])
             self.output = tf.matmul(fc_1, self.weights['w2']) + self.biases['b2']
 
             self.loss = tf.losses.mean_squared_error(self.Y, self.output)

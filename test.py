@@ -63,7 +63,7 @@ def main():
                 state_queue.append(next_state)
                 continue
 
-            action = np.argmax(mainDQN.predict(np.reshape(np.array(state_queue), [1, n_size, n_size, 4])))
+            action = np.argmax(targetDQN.predict(np.reshape(np.array(state_queue), [1, n_size, n_size, 4])))
 
             # Get new state and reward from environment
             next_state, reward, done, _ = env.step(action)

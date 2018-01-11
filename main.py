@@ -25,7 +25,7 @@ def main():
     discount = 0.99
 
     checkpoint_dir = './checkpoints'
-    save_file_name = 'mario_weight_server.ckpt'
+    save_file_name = 'mario_weight_2.ckpt'
     
     # 1. Create gym environment
     env = gym.make("ppaquette/SuperMarioBros-1-1-v0")
@@ -51,6 +51,7 @@ def main():
     saver = tf.train.Saver(var_list = dqn_var_list)
 
 
+
     for eps in range(MAX_EPISODES):
         # decaying epsilon greedy
         e = 1. / ((eps / 10) + 1)
@@ -62,6 +63,10 @@ def main():
 
         state_queue.append(state)
         next_state_queue.append(state)
+
+
+        prev_100 = 0
+        curr_100 = 0
 
         
         while not done:
@@ -86,7 +91,9 @@ def main():
             next_state, reward, done, _ = env.step(action)
 
             if done:  # Penalty
-                reward = -1
+                reward = -100
+
+            curr_100 += reward
 
             next_state_queue.append(next_state)
 
@@ -106,10 +113,15 @@ def main():
                 loss = mainDQN.update(states, Q_m)
                 print("eps: {} step: {} loss: {}".format(eps, step_count, loss))
 
+                if curr_100 > prev_100:
+                    save_path = saver.save(sess, os.path.join(checkpoint_dir, save_file_name))
+                    print("Model saved in file: %s" % save_path)
+
+                prev_100 = curr_100
+                curr_100 = 0
+
             if step_count % TARGET_UPDATE_EPS == 0:
                 sess.run(copy_ops)
-                save_path = saver.save(sess, os.path.join(checkpoint_dir, save_file_name))
-                print("Model saved in file: %s" % save_path)
 
             state_queue.append(next_state)
 
