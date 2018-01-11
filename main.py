@@ -25,7 +25,7 @@ def main():
     discount = 0.99
 
     checkpoint_dir = './checkpoints'
-    save_file_name = 'mario_weight.ckpt'
+    save_file_name = 'mario_weight_server.ckpt'
     
     # 1. Create gym environment
     env = gym.make("ppaquette/SuperMarioBros-1-1-v0")
